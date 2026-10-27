@@ -31,7 +31,7 @@ table.ctable th, table.ctable td {text-align:center !important; padding:.4rem .7
 table.ctable th {background: rgba(148,163,184,.22); position:sticky; top:0; font-weight:600;}
 </style>
 <div class="hero"><h1>🫀 Linear Prediction Phonocardiogram</h1>
-<p>Pemodelan all-pole (AR) sinyal bunyi jantung · Tsaabitah PMPA - 5023241047</p></div>
+<p>Pemodelan all-pole (AR) sinyal bunyi jantung · Aminy Widinal Hartiningrum</p></div>
 """, unsafe_allow_html=True)
 
 
@@ -40,6 +40,20 @@ def show_table(df, index=False, fmt="{:.6g}"):
     html = df.to_html(index=index, classes="ctable", border=0, escape=True,
                       float_format=lambda v: fmt.format(v))
     st.markdown(f'<div class="ctable-wrap">{html}</div>', unsafe_allow_html=True)
+
+
+def downloads(df, name, key, index=False):
+    """Tombol simpan CSV & Excel untuk satu tabel."""
+    import io
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="openpyxl") as xw:
+        df.to_excel(xw, index=index, sheet_name=name[:31])
+    c1, c2, _ = st.columns([1, 1, 2])
+    c1.download_button("⬇️ Simpan CSV", df.to_csv(index=index).encode("utf-8"),
+                       f"{name}.csv", "text/csv", key=f"csv_{key}")
+    c2.download_button("⬇️ Simpan Excel", buf.getvalue(), f"{name}.xlsx",
+                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                       key=f"xls_{key}")
 
 
 # ---------------- Sidebar ----------------
@@ -97,6 +111,10 @@ c2.metric("MSE prediksi", f"{R['mse']:.3e}")
 c3.metric("Error model (E)", f"{R['Emodel']:.3e}")
 c4.metric("SNR prediksi", f"{R['snr']:.2f} dB")
 
+res_df = pd.DataFrame({"sampel": n, "waktu": t, "x_asli": x,
+                       "x_prediksi": R["xp"], "error": R["e"]})
+coef_df = pd.DataFrame({"koefisien": [f"a{k+1}" for k in range(L)], "nilai": R["a"]})
+
 tabs = st.tabs(["① Sinyal & Autokorelasi", "② Matriks Rxx", "③ Koefisien",
                 "④ Error", "⑤ Prediksi", "⑥ Respon Frekuensi", "⑦ Pengaruh L"])
 
@@ -130,6 +148,7 @@ with tabs[2]:
     show_table(pd.DataFrame({"Koefisien": [f"a{k+1}" for k in range(L)], "Nilai": R["a"]}))
     f, ax = fig(2.4); ax.bar(range(1, L + 1), R["a"], color=TEAL)
     ax.set(title="Koefisien prediktor", xlabel="k", ylabel="a[k]"); st.pyplot(f)
+    downloads(coef_df, "koefisien_prediktor", "coef")
 
 # 4
 with tabs[3]:
@@ -144,6 +163,8 @@ with tabs[3]:
         st.latex(r"E=r_0-\sum a_k r_k")
         st.write(f"E = `{R['Emodel']:.6g}`  \nG = √E = `{R['G']:.6g}`")
 
+    downloads(res_df[["sampel", "waktu", "x_asli", "error"]], "error_prediksi", "err")
+
 # 5
 with tabs[4]:
     f, ax = fig(3.6)
@@ -157,6 +178,8 @@ with tabs[4]:
     ax.plot(xs[sl], x[sl], color=GRAY, label="Asli")
     ax.plot(xs[sl], np.where(n[sl] >= L, R["xp"][sl], np.nan), color=RED, label="Prediksi")
     ax.legend(); ax.set(xlabel=xlabel); st.pyplot(f)
+
+    downloads(res_df, "sinyal_prediksi", "pred")
 
 # 6
 with tabs[5]:
@@ -183,13 +206,4 @@ with tabs[6]:
     ax.axvline(L, color=RED, ls="--", lw=.8); ax.set(title="MSE terhadap orde L", xlabel="L", ylabel="MSE")
     st.pyplot(f)
     show_table(df.assign(L=df["L"].astype(int).astype(str)))
-
-# ---------------- Download ----------------
-st.divider()
-res = pd.DataFrame({"sampel": n, "waktu": t, "x": x, "x_prediksi": R["xp"], "error": R["e"]})
-coef = pd.DataFrame({"koefisien": [f"a{k+1}" for k in range(L)], "nilai": R["a"]})
-d1, d2 = st.columns(2)
-d1.download_button("⬇️ Unduh sinyal prediksi & error (CSV)", res.to_csv(index=False).encode(),
-                   "hasil_prediksi.csv", "text/csv")
-d2.download_button("⬇️ Unduh koefisien prediktor (CSV)", coef.to_csv(index=False).encode(),
-                   "koefisien.csv", "text/csv")
+    downloads(df, "pengaruh_L", "lsweep")
