@@ -31,7 +31,7 @@ table.ctable th, table.ctable td {text-align:center !important; padding:.4rem .7
 table.ctable th {background: rgba(148,163,184,.22); position:sticky; top:0; font-weight:600;}
 </style>
 <div class="hero"><h1>🫀 Linear Prediction Phonocardiogram</h1>
-<p>Pemodelan all-pole (AR) sinyal bunyi jantung · Aminy Widinal Hartiningrum</p></div>
+<p>Pemodelan all-pole (AR) sinyal bunyi jantung · Tsaabitah PMPA - 5023241047</p></div>
 """, unsafe_allow_html=True)
 
 
