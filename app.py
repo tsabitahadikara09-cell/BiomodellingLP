@@ -13,16 +13,34 @@ SAMPLE = os.path.join(os.path.dirname(__file__), "data", "DataBiomodPCG.txt")
 
 st.markdown("""
 <style>
-.block-container {padding-top: 1.6rem;}
+.block-container {padding-top: 3.5rem;}
 .hero {background: linear-gradient(120deg,#0f766e,#0e7490); padding: 1.2rem 1.5rem;
-       border-radius: 14px; color: white; margin-bottom: 1rem;}
-.hero h1 {margin:0; font-size: 1.8rem; color: white;}
-.hero p {margin:.2rem 0 0; opacity:.9;}
-div[data-testid="stMetric"] {background:#f1f5f9; padding:.7rem 1rem; border-radius:12px;}
+       border-radius: 14px; margin-bottom: 1rem;}
+.hero h1 {margin:0; font-size: 1.8rem; color: #ffffff !important; padding:0;}
+.hero p {margin:.3rem 0 0; color: #e6fffb !important;}
+/* kartu metrik: netral terhadap tema terang/gelap */
+div[data-testid="stMetric"] {background: rgba(148,163,184,.18); padding:.7rem 1rem;
+       border-radius:12px; border:1px solid rgba(148,163,184,.35);}
+div[data-testid="stMetric"] * {color: inherit !important;}
+div[data-testid="stMetricLabel"] {opacity:.8;}
+/* tabel rata tengah */
+.ctable-wrap {max-height: 380px; overflow:auto; border:1px solid rgba(148,163,184,.35); border-radius:10px;}
+table.ctable {width:100%; border-collapse:collapse; font-size:.9rem;}
+table.ctable th, table.ctable td {text-align:center !important; padding:.4rem .7rem;
+       border-bottom:1px solid rgba(148,163,184,.25);}
+table.ctable th {background: rgba(148,163,184,.22); position:sticky; top:0; font-weight:600;}
 </style>
 <div class="hero"><h1>🫀 Linear Prediction Phonocardiogram</h1>
 <p>Pemodelan all-pole (AR) sinyal bunyi jantung · Aminy Widinal Hartiningrum</p></div>
 """, unsafe_allow_html=True)
+
+
+def show_table(df, index=False, fmt="{:.6g}"):
+    """Tabel HTML rata tengah, ikut tema terang/gelap."""
+    html = df.to_html(index=index, classes="ctable", border=0, escape=True,
+                      float_format=lambda v: fmt.format(v))
+    st.markdown(f'<div class="ctable-wrap">{html}</div>', unsafe_allow_html=True)
+
 
 # ---------------- Sidebar ----------------
 with st.sidebar:
@@ -92,25 +110,24 @@ with tabs[0]:
     with a2:
         f, ax = fig(); ax.stem(range(L + 1), R["r"]); ax.set(title="Autokorelasi r[k]", xlabel="k", ylabel="r[k]")
         st.pyplot(f)
-    st.dataframe(pd.DataFrame({"k": range(L + 1), "r[k]": R["r"]}), hide_index=True, width="stretch")
+    show_table(pd.DataFrame({"k": range(L + 1), "r[k]": R["r"]}))
 
 # 2
 with tabs[1]:
     idx = [str(i + 1) for i in range(L)]
     b1, b2 = st.columns([3, 1])
     b1.subheader("Matriks Rxx (Toeplitz)")
-    b1.dataframe(pd.DataFrame(R["Rxx"], index=idx, columns=idx), width="stretch")
+    with b1: show_table(pd.DataFrame(R["Rxx"], index=idx, columns=idx), index=True)
     b2.subheader("Vektor r")
-    b2.dataframe(pd.DataFrame(R["rv"], index=idx, columns=["r"]), width="stretch")
+    with b2: show_table(pd.DataFrame(R["rv"], index=idx, columns=["r"]), index=True)
     st.subheader("Inverse Rxx")
-    st.dataframe(pd.DataFrame(R["Rinv"], index=idx, columns=idx), width="stretch")
+    show_table(pd.DataFrame(R["Rinv"], index=idx, columns=idx), index=True)
     st.caption(f"Condition number Rxx = {R['cond']:.3g} (semakin besar → makin mendekati singular).")
 
 # 3
 with tabs[2]:
     st.latex(r"\mathbf{a}=\mathbf{R}_{xx}^{-1}\,\mathbf{r}")
-    st.dataframe(pd.DataFrame({"Koefisien": [f"a{k+1}" for k in range(L)], "Nilai": R["a"]}),
-                 hide_index=True, width="stretch")
+    show_table(pd.DataFrame({"Koefisien": [f"a{k+1}" for k in range(L)], "Nilai": R["a"]}))
     f, ax = fig(2.4); ax.bar(range(1, L + 1), R["a"], color=TEAL)
     ax.set(title="Koefisien prediktor", xlabel="k", ylabel="a[k]"); st.pyplot(f)
 
@@ -165,7 +182,7 @@ with tabs[6]:
     f, ax = fig(); ax.plot(df["L"], df["MSE"], "o-", color=TEAL)
     ax.axvline(L, color=RED, ls="--", lw=.8); ax.set(title="MSE terhadap orde L", xlabel="L", ylabel="MSE")
     st.pyplot(f)
-    st.dataframe(df, hide_index=True, width="stretch")
+    show_table(df.assign(L=df["L"].astype(int).astype(str)))
 
 # ---------------- Download ----------------
 st.divider()
